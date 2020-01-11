@@ -1,0 +1,65 @@
+#!/bin/python
+
+import time
+import sys
+import boto3
+
+REGION_NAME = 'us-east-1'         # enter your region name here
+
+INSTANCE_ID = 'XXXXXXXXXXXX'      # enter your instance name here
+
+ec2 = boto3.client('ec2', region_name=REGION_NAME)
+
+def main():
+#def lambda_handler(event, context):
+    # read arguments from the command line and
+    # check whether at least two elements were entered
+    if len(sys.argv) < 2:
+        print "Usage: python aws.py {start|stop}\n"
+        sys.exit(0)
+    else:
+        action = sys.argv[1]
+
+    if action == "start":
+        startInstance()
+    elif action == "stop":
+        stopInstance()
+    else:
+        print "Usage: python aws.py {start|stop}\n"
+
+def startInstance():
+    print "Starting the instance..."
+    ec2.start_instances(InstanceIds=[INSTANCE_ID])
+    while True:
+        response = ec2.describe_instance_status(InstanceIds=[INSTANCE_ID], IncludeAllInstances=True)
+        state = response['InstanceStatuses'][0]['InstanceState']
+
+        #print(f"Status: {state['Code']} - {state['Name']}")
+
+        # If status is 16 ('running'), then proceed, else, wait 5 seconds and try again
+        if state['Code'] == 16:
+            break
+        else:
+            time.sleep(10)
+
+    print('EC2 started')
+
+def stopInstance():
+    print "Stopping the instance..."
+    ec2.stop_instances(InstanceIds=[INSTANCE_ID])
+    while True:
+        response = ec2.describe_instance_status(InstanceIds=[INSTANCE_ID], IncludeAllInstances=True)
+        state = response['InstanceStatuses'][0]['InstanceState']
+
+        #print(f"Status: {state['Code']} - {state['Name']}")
+
+        # If status is 80 ('stopped'), then proceed, else wait 5 seconds and try again
+        if state['Code'] == 80:
+            break
+        else:
+            time.sleep(5)
+
+    print('Instance stopped')
+
+if __name__ == '__main__':
+    main()
