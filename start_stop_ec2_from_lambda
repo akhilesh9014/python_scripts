@@ -1,0 +1,36 @@
+import boto3
+import sys
+import time
+
+region = 'ap-south-1'
+instances = ['i-0609df5beba0f95c6','i-072cf4f57b4fa5462','i-0d6d269ad038c0693']
+ec2 = boto3.client('ec2', region_name=region)
+
+def lambda_handler(event, context):
+    if event['action'] == "stop":   
+        ec2.stop_instances(InstanceIds=instances)
+        while True:
+            response = ec2.describe_instance_status(InstanceIds=instances, IncludeAllInstances=True)
+            state = response['InstanceStatuses'][0]['InstanceState']
+            if state['Code'] == 80:
+                break
+            else:
+                time.sleep(5)
+        print('stopped your instances: ' + str(instances))
+         
+    elif event['action'] == "start":
+        ec2.start_instances(InstanceIds=instances)
+        while True:
+            response = ec2.describe_instance_status(InstanceIds=instances, IncludeAllInstances=True)
+            state = response['InstanceStatuses'][0]['InstanceState']
+            #print(f"Status: {state['Code']} - {state['Name']}")
+            #If status is 16 ('running'), then proceed, else, wait 5 seconds and try again
+            if state['Code'] == 16:
+                break
+            else:
+                time.sleep(10)
+        print('started your instances: ' + str(instances))    
+    else:
+        print("Expected one argument ==> start/stop")
+        
+        
